@@ -1,0 +1,48 @@
+//This is pipeline for Lab 28:Pushing image to AWS ECR
+pipeline {
+    agent any
+    environment {
+        registry= "041288576823.dkr.ecr.us-east-1.amazonaws.com/my-docker-repo"
+    }
+    stages {
+        stage('Cloning Git') {
+            steps {
+                checkout scmGit(branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[credentialsId: 'd2dcccd0-d42f-4202-b2b3-e0d5e2dcb387', url: 'https://github.com/socrates90/myPythonDockerRepo']])
+            }
+        }
+        
+        stage('Building Image'){
+            steps{
+                script{
+                    dockerImage=docker.build registry
+                }
+            }
+        }
+        
+        stage('Push to ECR') {
+            steps {
+                script {
+                    sh 'aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 041288576823.dkr.ecr.us-east-1.amazonaws.com'
+                    sh 'docker push 041288576823.dkr.ecr.us-east-1.amazonaws.com/my-docker-repo:latest'
+                }
+            }
+        }
+        
+        stage('Stop Previous Containers') {
+            steps {
+                script {
+                    sh 'docker ps -f name=mypythonContainer -q | xargs --no-run-if-empty docker container stop'
+                    sh 'docker container ls -a -fname=mypythonContainer -q | xargs -r docker container rm'
+                }
+            }
+        }
+        
+        stage('Docker Run') {
+            steps {
+                script {
+                    sh 'docker run -d -p 8096:5000 --rm --name mypythonContainer 041288576823.dkr.ecr.us-east-1.amazonaws.com/my-docker-repo:latest'
+                }
+            }
+        }
+    }
+}
