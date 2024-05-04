@@ -16,4 +16,5 @@ COPY templates/index.html /usr/src/app/templates/
 EXPOSE 5000
 
 # run the application
+# this runs a command I believe
 CMD ["python", "/usr/src/app/app.py"]
